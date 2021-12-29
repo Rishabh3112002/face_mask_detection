@@ -40,5 +40,7 @@ pip intall PILLOW
 
 Download the file named face_detection from here.
 
+The dataset of the images are taken from https://www.kaggle.com/vijaykumar1799/face-mask-detection.
+
 ## Precautions
 Few of the above mentioned pacakages few dont work on Python 3.8 so using Python 3.7 is preferable.  
