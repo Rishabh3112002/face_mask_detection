@@ -10,7 +10,7 @@ import os
 
 def detect_and_predict_mask(frame, faceNet, maskNet):
     (h, w) = frame.shape[:2]
-    blob = cv2.dnn.blobFromImage(frame, 0.7, (224, 224), (104.0, 177.0, 123.0))
+    blob = cv2.dnn.blobFromImage(frame, 3.0, (224, 224), (104.0, 177.0, 123.0))
 
     faceNet.setInput(blob)
     detection = faceNet.forward()
@@ -44,8 +44,8 @@ def detect_and_predict_mask(frame, faceNet, maskNet):
 
     return (locs, preds)
 
-prototxtPath = r"face_detection\deploy.prototxt"
-weightsPath = r"face_detection\res10_300x300_ssd_iter_140000.caffemodel"
+prototxtPath = r"face_detection/deploy.prototxt"
+weightsPath = r"face_detection/res10_300x300_ssd_iter_140000.caffemodel"
 faceNet = cv2.dnn.readNet(prototxtPath, weightsPath)
 
 maskNet = load_model('mask_detector.model')
@@ -63,12 +63,12 @@ while True:
         (startX, startY, endX, endY) = box
         (maskwearedincorrect, mask, withoutmask) = pred
 
-        if mask >= withoutmask and mask >= maskwearedincorrect:
+        if mask > 0.95:
             label = "Mask"
-        elif maskwearedincorrect > mask and maskwearedincorrect >= withoutmask:
-            label = "Mask Not Worn Properly"
-        else:
+        elif withoutmask > 0.95:
             label = "No Mask"
+        else:
+            label = "Mask Not Worn Properly"
 
         if label == "Mask":
             color = (0, 255, 0)
