@@ -59,13 +59,13 @@ while True:
 
     (locs, preds) = detect_and_predict_mask(frame, faceNet, maskNet)
 
-    for (box,pred) in zip(locs, preds):
+    for (box, pred) in zip(locs, preds):
         (startX, startY, endX, endY) = box
         (maskwearedincorrect, mask, withoutmask) = pred
 
-        if mask > 0.95:
+        if mask > 0.90:
             label = "Mask"
-        elif withoutmask > 0.95:
+        elif withoutmask > 0.90:
             label = "No Mask"
         else:
             label = "Mask Not Worn Properly"

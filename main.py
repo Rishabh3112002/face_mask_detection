@@ -16,8 +16,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 import matplotlib.pyplot as plt
 
-dir = r'PATH_TO_DATASET'
-cat = ["with_mask", "without_mask", "mask_weared_incorrect"]#folder name of the dataset
+dir = r'D:\Dataset\archive\Dataset'
+cat = ["with_mask", "without_mask", "mask_weared_incorrect"]
 
 print("[INFO] loading images...")
 
