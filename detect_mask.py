@@ -58,7 +58,6 @@ while True:
     frame = imutils.resize(frame, width=800)
 
     (locs, preds) = detect_and_predict_mask(frame, faceNet, maskNet)
-
     for (box, pred) in zip(locs, preds):
         (startX, startY, endX, endY) = box
         (maskwearedincorrect, mask, withoutmask) = pred
