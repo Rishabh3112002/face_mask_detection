@@ -1,0 +1,8 @@
+.DS_Store
+.idea/
+download_and_install.sh
+face_detection/
+mask_detector,model
+test1.jpg
+venv/
+yolo.py
