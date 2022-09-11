@@ -68,7 +68,6 @@ model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy
 H = model.fit(trainX, trainY, batch_size=32, epochs=10)
 
 pred = model.predict(testX, batch_size=10)
-
 pred = np.argmax(pred, axis=1)
 print(classification_report(testY.argmax(axis=1), pred, target_names=le.classes_))
 
