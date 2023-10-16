@@ -7,6 +7,14 @@ import imutils
 import time
 import cv2
 import os
+import websockets
+import asyncio
+
+PORT = 3000
+print("Server listening on Port " + str(PORT))
+
+connected = set()
+
 
 def detect_and_predict_mask(frame, faceNet, maskNet):
     (h, w) = frame.shape[:2]
@@ -14,7 +22,7 @@ def detect_and_predict_mask(frame, faceNet, maskNet):
 
     faceNet.setInput(blob)
     detection = faceNet.forward()
-    print(detection.shape)
+    # print(detection.shape)
 
     faces = []
     locs = []
@@ -44,46 +52,61 @@ def detect_and_predict_mask(frame, faceNet, maskNet):
 
     return (locs, preds)
 
-prototxtPath = r"face_detection/deploy.prototxt"
-weightsPath = r"face_detection/res10_300x300_ssd_iter_140000.caffemodel"
-faceNet = cv2.dnn.readNet(prototxtPath, weightsPath)
 
-maskNet = load_model('mask_detector.model')
+async def detect_face(websocket, path):
+    connected.add(websocket)
+    prototxtPath = r"face_detection/deploy.prototxt"
+    weightsPath = r"face_detection/res10_300x300_ssd_iter_140000.caffemodel"
+    faceNet = cv2.dnn.readNet(prototxtPath, weightsPath)
 
-print("[INFO] starting video stream...")
-vs = VideoStream(scr=0).start()
+    maskNet = load_model('mask_detector.model')
 
-while True:
-    frame = vs.read()
-    frame = imutils.resize(frame, width=800)
+    try:
+        while True:
+            frame_bytes = await websocket.recv()
+            frame = cv2.imdecode(np.frombuffer(
+                frame_bytes, np.uint8), cv2.IMREAD_COLOR)
+            if frame is None:
+                continue
+            frame = cv2.flip(frame, 1)
+            h, w, _ = frame.shape
 
-    (locs, preds) = detect_and_predict_mask(frame, faceNet, maskNet)
-    for (box, pred) in zip(locs, preds):
-        (startX, startY, endX, endY) = box
-        (maskwearedincorrect, mask, withoutmask) = pred
+            (locs, preds) = detect_and_predict_mask(frame, faceNet, maskNet)
+            for (box, pred) in zip(locs, preds):
+                (startX, startY, endX, endY) = box
+                (maskwearedincorrect, mask, withoutmask) = pred
 
-        if mask > 0.90:
-            label = "Mask"
-        elif withoutmask > 0.90:
-            label = "No Mask"
-        else:
-            label = "Mask Not Worn Properly"
+                if mask > 0.90:
+                    label = "Mask"
+                elif withoutmask > 0.90:
+                    label = "No Mask"
+                else:
+                    label = "Mask Not Worn Properly"
 
-        if label == "Mask":
-            color = (0, 255, 0)
-        elif label == "No Mask":
-            color = (0, 0, 255)
-        else:
-            color = (255, 0, 0)
+                if label == "Mask":
+                    color = (0, 255, 0)
+                elif label == "No Mask":
+                    color = (0, 0, 255)
+                else:
+                    color = (255, 0, 0)
 
-        label = "{}: {:.2f}%".format(label, max(mask, withoutmask, maskwearedincorrect) * 100)
-        cv2.putText(frame, label, (startX, startY-10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
-        cv2.rectangle(frame, (startX, startY), (endX, endY), color, 2)
+                label = "{}: {:.2f}%".format(label, max(
+                    mask, withoutmask, maskwearedincorrect) * 100)
+                cv2.putText(frame, label, (startX, startY-10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
+                cv2.rectangle(frame, (startX, startY), (endX, endY), color, 2)
 
-    cv2.imshow("Frame", frame)
-    key = cv2.waitKey(1) & 0xFF
+            await websocket.send(cv2.imencode('.jpg', frame)[1].tobytes())
 
-    if key == ord("q"):
-        break
-cv2.destroyAllWindows()
-vs.stop()
+    except websockets.exceptions.ConnectionClosed as e:
+        print("A client just disconnected")
+    finally:
+        connected.remove(websocket)
+
+
+async def main():
+    start_server = await websockets.serve(detect_face, "localhost", PORT)
+    await start_server.serve_forever()
+
+if __name__ == '__main__':
+    asyncio.get_event_loop().run_until_complete(main())
